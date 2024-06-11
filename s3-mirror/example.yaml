@@ -1,0 +1,20 @@
+binaries:
+- name: "cri-tools"
+  versions:
+    github: "https://github.com/kubernetes-sigs/cri-tools"
+    semver: ">=1.25.0"
+  download: "https://github.com/kubernetes-sigs/cri-tools/releases/download/{{.version}}/crictl-{{.version}}-{{.os}}-{{.arch}}.tar.gz"
+  checksum: "https://github.com/kubernetes-sigs/cri-tools/releases/download/{{.version}}/crictl-{{.version}}-{{.os}}-{{.arch}}.tar.gz.sha256"
+  destination: "crictl/crictl-{{.version}}-{{.os}}-{{.arch}}.tar.gz"
+  arch: ["amd64", "arm64"]
+  os: [ "linux" ]
+
+- name: "kubernetes"
+  versions:
+    github: "https://github.com/kubernetes/kubernetes"
+    semver: ">=1.25"
+  download: "https://dl.k8s.io/{{.version}}/bin/{{os}}/{{.arch}}"
+  checksum: "https://dl.k8s.io/{{.version}}/bin/{{os}}/{{.arch}}.sha256"
+  destination: "kubernetes/kubernetes-{{.version}}-{{.os}}-{{.arch}}.tar.gz"
+  arch: ["amd64", "arm64"]
+  os: [ "linux" ]

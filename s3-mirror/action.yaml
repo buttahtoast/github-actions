@@ -1,0 +1,48 @@
+name: 'S3 Github Release Mirror'
+description: 'Download Files from Github releases and upload them to S3'
+author: 'oliverbaehler@hotmail.com'
+inputs:
+  s3_bucket:
+    description: 'S3 bucket to upload binaries'
+    required: true
+  config:
+    description: 'YAML config file for binaries to download'
+    required: false
+    default: 'config.yaml'
+  aws_region:
+    description: 'AWS region for the S3 bucket'
+    required: true
+  aws_access_key_id:
+    description: 'AWS access key ID'
+    required: true
+  aws_secret_access_key:
+    description: 'AWS secret access key'
+    required: true
+  s3_endpoint:
+    description: 'S3 endpoint'
+    required: true
+  s3_tlssecure:
+    description: 'Use TLS for the S3 endpoint'
+    required: false
+    default: 'true'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - '--bucket'
+    - ${{ inputs.s3_bucket }}
+    - '--config'
+    - ${{ inputs.config }}
+    - '--region'
+    - ${{ inputs.aws_region }}
+    - '--access-key'
+    - ${{ inputs.aws_access_key_id }}
+    - '--secret-key'
+    - ${{ inputs.aws_secret_access_key }}
+    - '--endpoint'
+    - ${{ inputs.s3_endpoint }}
+    - '--tlssecure'
+    - ${{ inputs.s3_tlssecure }}
+branding:
+  icon: 'download'
+  color: 'blue'
