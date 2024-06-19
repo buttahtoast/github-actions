@@ -26,7 +26,8 @@ jobs:
       uses: buttahtoast/github-actions/s3-mirror@main
       with:
         
-        s3_access_key_id: ${{ secrets.README_TEMPLATE_TOKEN }}
+        s3_access_key: ${{ secrets.S3_ACCESS_KEY }}
+        s3_secret_key: ${{ secrets.S3_SECRET_KEY }}
         template: TEMPLATE.md
         output: README.md
 ```
@@ -98,27 +99,13 @@ bins:
 
 ## Variables
 
-### Normal variables you can put into your template file
-
-| Variable                 | Example |
+| Action Variable                 | Environment Variable |
 | ------------------------ | ------- |
-| {{ USERNAME }}            | probablykasper
-| {{ NAME }}                | Kasper
-| {{ EMAIL }}               | email@example.com
-| {{ USER_ID }}             | MDQ6VXNlcjExMzE1NDky
-| {{ BIO }}                 | Fullstack developer from Norway
-| {{ COMPANY }}             | Microscopicsoft
-| {{ LOCATION }}            | Norway
-| {{ TWITTER_USERNAME }}    | probablykasper
-| {{ AVATAR_URL }}          | https://avatars0.githubusercontent.com/u/11315492?u=c501da00e9b817ffc78faab6c630f236ac2738cf&v=4
-| {{ WEBSITE_URL }}         | https://kasper.space/
-| {{ SIGNUP_TIMESTAMP }}    | 2015-03-04T14:48:35Z
-| {{ SIGNUP_DATE }}         | March 4th 2015
-| {{ SIGNUP_DATE2 }}        | 2015-03-04
-| {{ SIGNUP_YEAR }}         | 2015
-| {{ SIGNUP_AGO }}          | 5 years ago
-| {{ TOTAL_REPOS_SIZE_KB }} | 707453
-| {{ TOTAL_REPOS_SIZE_MB }} | 707.5
-| {{ TOTAL_REPOS_SIZE_GB }} | 0.71
-| {{ TOTAL_REPOSITORIES }}  | 46
-| {{ CURRENT_REPO_FULL_NAME }} | probablykasper/readme-template-action
+| `s3_bucket`           | `S3_BUCKET` |
+| `config`               | `CONFIG_FILE` |
+| `s3_region`             | `AWS_REGION` |
+| `s3_access_key`           | `AWS_ACCESS_KEY_ID` |
+| `s3_secret_key`              | `AWS_SECRET_ACCESS_KEY` |
+| `s3_endpoint`          | `S3_ENDPOINT` |
+| `s3_tlssecure`          | `S3_TLSSECURE` |
+| `log_level`   | `LOG_LEVEL` |

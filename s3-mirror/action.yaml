@@ -4,27 +4,29 @@ author: 'oliverbaehler@hotmail.com'
 inputs:
   s3_bucket:
     description: 'S3 bucket to upload binaries'
-    required: true
+    required: false
   config:
     description: 'YAML config file for binaries to download'
     required: false
     default: 'config.yaml'
   s3_region:
     description: 'S3 Region'
-    required: true
+    required: false
   s3_access_key:
     description: 'S3 Access key ID'
-    required: true
+    required: false
   s3_secret_key:
     description: 'S3 Secret access key'
-    required: true
+    required: false
   s3_endpoint:
     description: 'S3 endpoint'
-    required: true
+    required: false
   s3_tlssecure:
     description: 'Use TLS for the S3 endpoint'
     required: false
-    default: 'true'
+  log_level:
+    description: 'Log level for script'
+    required: false
 runs:
   using: 'docker'
   image: 'Dockerfile'
@@ -43,6 +45,8 @@ runs:
     - ${{ inputs.s3_endpoint }}
     - '--tlssecure'
     - ${{ inputs.s3_tlssecure }}
+    - '--log-level'
+    - ${{ inputs.log_level }}
 branding:
   icon: 'download'
   color: 'blue'
