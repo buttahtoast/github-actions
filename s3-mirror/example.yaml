@@ -1,20 +1,52 @@
-binaries:
+lifecycle: true
+preserveChecksums: true
+bins:
+
+#- name: "cni"
+#  versions:
+#    github: "https://github.com/containernetworking/plugins"
+#    semver: ">=1.3.0"
+#  targets:
+#    - url: "{{.github}}/releases/download/{{.version}}/cni-plugins-{{.os}}-{{.arch}}-{{.version}}.tgz"
+#      checksum: "{{.github}}/releases/download/{{.version}}/cni-plugins-{{.os}}-{{.arch}}-{{.version}}.tgz.sha256"
+#      destination: "cni/cni-plugins-{{.os}}-{{.arch}}-{{.version}}.tgz"
+#  arch: ["amd64", "arm64"]
+#  os: [ "linux" ]
+
+- name: "talos"
+  versions:
+    github: "https://github.com/siderolabs/talos"
+    semver: ">=1.7.0"
+  targets:
+    - url: "{{.github}}/releases/download/{{.version}}/vmlinuz-{{.arch}}.xz"
+      destination: "talos/vmlinuz-{{.version}}-{{.arch}}.xz"
+    - url: "{{.github}}/releases/download/{{.version}}/initramfs-{{.arch}}.xz"
+      destination: "talos/initramfs-{{.version}}-{{.arch}}.xz"
+  arch: ["amd64", "arm64"]
+  os: [ "linux" ]
+
 - name: "cri-tools"
   versions:
     github: "https://github.com/kubernetes-sigs/cri-tools"
     semver: ">=1.25.0"
-  download: "https://github.com/kubernetes-sigs/cri-tools/releases/download/{{.version}}/crictl-{{.version}}-{{.os}}-{{.arch}}.tar.gz"
-  checksum: "https://github.com/kubernetes-sigs/cri-tools/releases/download/{{.version}}/crictl-{{.version}}-{{.os}}-{{.arch}}.tar.gz.sha256"
-  destination: "crictl/crictl-{{.version}}-{{.os}}-{{.arch}}.tar.gz"
+  targets:
+    - url: "{{.github}}/releases/download/{{.version}}/crictl-{{.version}}-{{.os}}-{{.arch}}.tar.gz"
+      checksum: "{{.github}}/releases/download/{{.version}}/crictl-{{.version}}-{{.os}}-{{.arch}}.tar.gz.sha256"
+      destination: "crictl/crictl-{{.version}}-{{.os}}-{{.arch}}.tar.gz"
   arch: ["amd64", "arm64"]
   os: [ "linux" ]
 
 - name: "kubernetes"
   versions:
     github: "https://github.com/kubernetes/kubernetes"
-    semver: ">=1.25"
-  download: "https://dl.k8s.io/{{.version}}/bin/{{os}}/{{.arch}}"
-  checksum: "https://dl.k8s.io/{{.version}}/bin/{{os}}/{{.arch}}.sha256"
-  destination: "kubernetes/kubernetes-{{.version}}-{{.os}}-{{.arch}}.tar.gz"
+    semver: ">=1.25.0"
+  targets:
+    - url: "https://dl.k8s.io/{{.version}}/bin/{{.os}}/{{.arch}}/{{.bin}}"
+      checksum: "https://dl.k8s.io/{{.version}}/bin/{{.os}}/{{.arch}}/{{.bin}}.sha256"
+      destination: "kubernetes/{{.bin}}-{{.version}}-{{.os}}-{{.arch}}.tar.gz"
   arch: ["amd64", "arm64"]
   os: [ "linux" ]
+  bins:
+    - kubeadm
+    - kubelet
+    - kubectl

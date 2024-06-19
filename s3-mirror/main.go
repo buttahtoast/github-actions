@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -14,22 +13,30 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/blang/semver/v4"
 	"github.com/google/go-github/v47/github"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
 
 // BinaryConfig represents the configuration for a binary to be downloaded
 type BinaryConfig struct {
-	Name        string   `yaml:"name"`
-	Versions    Versions `yaml:"versions"`
-	Download    string   `yaml:"download"`
-	Checksum    string   `yaml:"checksum"`
-	Destination string   `yaml:"destination"`
-	Arch        []string `yaml:"arch"`
-	OS          []string `yaml:"os"`
+	Name     string   `yaml:"name"`
+	Versions Versions `yaml:"versions"`
+	Targets  []Target `yaml:"targets"`
+	Arch     []string `yaml:"arch"`
+	OS       []string `yaml:"os"`
+	Binaries []string `yaml:"bins"`
+}
+
+type Target struct {
+	URL         string `yaml:"url"`
+	Checksum    string `yaml:"checksum,omitempty"`
+	Destination string `yaml:"destination"`
+	Condition   string `yaml:"condition,omitempty"`
 }
 
 // Versions contains versioning information for a binary
@@ -41,7 +48,7 @@ type Versions struct {
 
 // Config represents the entire YAML configuration
 type Config struct {
-	Binaries []BinaryConfig `yaml:"binaries"`
+	Binaries []BinaryConfig `yaml:"bins"`
 }
 
 func FileExistsInS3(client *minio.Client, bucket, key string) (bool, error) {
@@ -64,7 +71,7 @@ func DownloadFile(url, dest string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download file: %s", resp.Status)
+		return fmt.Errorf("failed to download %s: %s", url, resp.Status)
 	}
 
 	out, err := os.Create(dest)
@@ -78,39 +85,39 @@ func DownloadFile(url, dest string) error {
 }
 
 // VerifyChecksum verifies the SHA256 checksum of a file against a given checksum URL
-func VerifyChecksum(filePath, checksumURL string) error {
+func VerifyChecksum(filePath, checksumURL string) (checksum []byte, err error) {
 	resp, err := http.Get(checksumURL)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download checksum: %s", resp.Status)
+		return nil, fmt.Errorf("failed to download checksum: %s", resp.Status)
 	}
 
 	expectedChecksum, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer file.Close()
 
 	hasher := sha256.New()
 	if _, err := io.Copy(hasher, file); err != nil {
-		return err
+		return nil, err
 	}
 
 	actualChecksum := fmt.Sprintf("%x", hasher.Sum(nil))
 	if strings.TrimSpace(string(expectedChecksum)) != actualChecksum {
-		return fmt.Errorf("checksum mismatch: expected %s, got %s", strings.TrimSpace(string(expectedChecksum)), actualChecksum)
+		return nil, fmt.Errorf("checksum mismatch: expected %s, got %s", strings.TrimSpace(string(expectedChecksum)), actualChecksum)
 	}
 
-	return nil
+	return expectedChecksum, err
 }
 
 // UploadFileToS3 uploads a file to an S3 bucket
@@ -160,7 +167,32 @@ func filterVersions(versions []string, semverConstraint string) ([]string, error
 	return filteredVersions, nil
 }
 
+func evaluateCondition(condition string, tmplContext map[string]string) (bool, error) {
+	tmpl, err := template.New("condition").Funcs(sprig.TxtFuncMap()).Parse(condition)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse condition template: %v", err)
+	}
+
+	var result bytes.Buffer
+	err = tmpl.Execute(&result, tmplContext)
+	if err != nil {
+		return false, fmt.Errorf("failed to execute condition template: %v", err)
+	}
+
+	fmt.Println("Condition result:", result.String())
+
+	return strings.TrimSpace(result.String()) == "true", nil
+}
+
 func main() {
+	log := logrus.New()
+
+	// Optionally set the log level and format
+	log.SetLevel(logrus.InfoLevel)
+	log.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+	})
+
 	app := &cli.App{
 		Name:  "k8s-binary-downloader",
 		Usage: "Download Kubernetes release binaries and upload them to an S3 bucket",
@@ -210,11 +242,29 @@ func main() {
 				EnvVars:  []string{"S3_TLSSECURE"},
 				Value:    true,
 			},
+			&cli.StringFlag{
+				Name:     "log-level",
+				Usage:    "Set the log level (debug, info, warn, error, fatal, panic)",
+				Required: false,
+				EnvVars:  []string{"LOG_LEVEL"},
+				Value:    "info", // default value
+			},
 		},
 		Action: func(c *cli.Context) error {
 			bucket := c.String("bucket")
 			configFile := c.String("config")
 			endpoint := c.String("endpoint")
+
+			// Set the log level based on the flag value
+			logLevel, err := logrus.ParseLevel(c.String("log-level"))
+			if err != nil {
+				return fmt.Errorf("invalid log level: %v", err)
+			}
+			log.SetLevel(logLevel)
+
+			log.SetFormatter(&logrus.TextFormatter{
+				FullTimestamp: true,
+			})
 
 			// Initialize MinIO client
 			minioClient, err := minio.New(endpoint, &minio.Options{
@@ -260,91 +310,107 @@ func main() {
 					return fmt.Errorf("failed to filter versions: %v", err)
 				}
 
-				fmt.Printf("Filtered versions for %s: %v\n", binary.Name, filteredVersions)
+				log.Infof("Selected versions for %s: %v\n", binary.Name, filteredVersions)
 
-				for _, version := range filteredVersions {
-					for _, system := range binary.OS {
-						for _, arch := range binary.Arch {
-							tmplContext := map[string]string{
-								"name":    binary.Name,
-								"version": version,
-								"os":      system,
-								"arch":    arch,
-							}
+				bins := binary.Binaries
+				if bins == nil {
+					bins = []string{binary.Name}
+				}
 
-							tmpl, err := template.New("download").Parse(binary.Download)
-							if err != nil {
-								return fmt.Errorf("failed to parse download template: %v", err)
-							}
+				for _, selectedTarget := range binary.Targets {
+					for _, version := range filteredVersions {
+						for _, system := range binary.OS {
+							for _, arch := range binary.Arch {
+								for _, bin := range bins {
+									tmplContext := map[string]string{
+										"name":    binary.Name,
+										"version": version,
+										"os":      system,
+										"arch":    arch,
+										"github":  binary.Versions.GitHub,
+										"bin":     bin,
+									}
 
-							var downloadURL bytes.Buffer
-							err = tmpl.Execute(&downloadURL, tmplContext)
-							if err != nil {
-								return fmt.Errorf("failed to execute download template: %v", err)
-							}
+									tmpl, err := template.New("download").Parse(selectedTarget.URL)
+									if err != nil {
+										return fmt.Errorf("failed to parse download template(%s): %v", selectedTarget.URL, err)
+									}
 
-							tmpl, err = template.New("checksum").Parse(binary.Checksum)
-							if err != nil {
-								return fmt.Errorf("failed to parse checksum template: %v", err)
-							}
+									var downloadURL bytes.Buffer
+									err = tmpl.Execute(&downloadURL, tmplContext)
+									if err != nil {
+										return fmt.Errorf("failed to execute download template: %v", err)
+									}
 
-							var checksumURL bytes.Buffer
-							err = tmpl.Execute(&checksumURL, tmplContext)
-							if err != nil {
-								return fmt.Errorf("failed to execute checksum template: %v", err)
-							}
+									var checksumURL bytes.Buffer
+									if selectedTarget.Checksum != "" {
+										tmpl, err = template.New("checksum").Parse(selectedTarget.Checksum)
+										if err != nil {
+											return fmt.Errorf("failed to parse checksum template: %v", err)
+										}
 
-							tmpl, err = template.New("destination").Parse(binary.Destination)
-							if err != nil {
-								return fmt.Errorf("failed to parse destination template: %v", err)
-							}
+										err = tmpl.Execute(&checksumURL, tmplContext)
+										if err != nil {
+											return fmt.Errorf("failed to execute checksum template: %v", err)
+										}
+									}
 
-							var s3Dest bytes.Buffer
-							err = tmpl.Execute(&s3Dest, tmplContext)
-							if err != nil {
-								return fmt.Errorf("failed to execute destination template: %v", err)
-							}
+									tmpl, err = template.New("destination").Parse(selectedTarget.Destination)
+									if err != nil {
+										return fmt.Errorf("failed to parse destination template: %v", err)
+									}
 
-							// Check if file exists in S3
-							key := s3Dest.String()
-							exists, err := FileExistsInS3(minioClient, bucket, key)
-							if err != nil {
-								return fmt.Errorf("failed to check if file exists in S3: %v", err)
-							}
-							if exists {
-								fmt.Printf("File already exists in s3://%s/%s, skipping download\n", bucket, key)
-								continue
-							}
+									var s3Dest bytes.Buffer
+									err = tmpl.Execute(&s3Dest, tmplContext)
+									if err != nil {
+										return fmt.Errorf("failed to execute destination template: %v", err)
+									}
 
-							tmpFile, err := os.CreateTemp("", "binary-*")
-							if err != nil {
-								return fmt.Errorf("failed to create temporary file: %v", err)
-							}
-							// Always Remove downloaded file
-							defer func() {
-								tmpFile.Close()
-								os.Remove(tmpFile.Name())
-							}()
+									// Check if file exists in S3
+									key := s3Dest.String()
+									exists, err := FileExistsInS3(minioClient, bucket, key)
+									if err != nil {
+										return fmt.Errorf("failed to check if file exists in S3: %v", err)
+									}
+									if exists {
+										log.Debugf("File already exists in s3://%s/%s, skipping download\n", bucket, key)
+										continue
+									}
 
-							fmt.Printf("Downloading %s from %s\n", binary.Name, downloadURL.String())
-							if err := DownloadFile(downloadURL.String(), tmpFile.Name()); err != nil {
-								fmt.Printf("failed to download file: %v", err)
-								continue
-							}
+									tmpFile, err := os.CreateTemp("", "binary-*")
+									if err != nil {
+										return fmt.Errorf("failed to create temporary file: %v", err)
+									}
+									// Always Remove downloaded file
+									defer func() {
+										tmpFile.Close()
+										os.Remove(tmpFile.Name())
+									}()
 
-							fmt.Printf("Verifying checksum for %s\n", tmpFile.Name())
-							if err := VerifyChecksum(tmpFile.Name(), checksumURL.String()); err != nil {
-								fmt.Printf("checksum verification failed: %v", err)
-								continue
+									log.Debugf("Downloading %s from %s\n", binary.Name, downloadURL.String())
+									if err := DownloadFile(downloadURL.String(), tmpFile.Name()); err != nil {
+										log.Errorf(err.Error())
+										continue
+									}
 
-							}
+									if selectedTarget.Checksum != "" {
+										log.Debugf("Verifying checksum for %s\n", tmpFile.Name())
+										if _, err := VerifyChecksum(tmpFile.Name(), checksumURL.String()); err != nil {
+											log.Errorf("checksum verification failed: %v", err)
+											continue
 
-							fmt.Printf("Uploading %s to s3://%s/%s\n", tmpFile.Name(), bucket, key)
-							if err := UploadFileToS3(minioClient, bucket, key, tmpFile.Name()); err != nil {
-								return fmt.Errorf("failed to upload file to S3: %v", err)
+										}
+									}
+
+									log.Debugf("Uploading %s to s3://%s/%s\n", tmpFile.Name(), bucket, key)
+									if err := UploadFileToS3(minioClient, bucket, key, tmpFile.Name()); err != nil {
+										return fmt.Errorf("failed to upload file to S3: %v", err)
+									}
+								}
 							}
 						}
 					}
+
 				}
 			}
 

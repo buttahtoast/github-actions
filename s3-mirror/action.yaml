@@ -9,14 +9,14 @@ inputs:
     description: 'YAML config file for binaries to download'
     required: false
     default: 'config.yaml'
-  aws_region:
-    description: 'AWS region for the S3 bucket'
+  s3_region:
+    description: 'S3 Region'
     required: true
-  aws_access_key_id:
-    description: 'AWS access key ID'
+  s3_access_key:
+    description: 'S3 Access key ID'
     required: true
-  aws_secret_access_key:
-    description: 'AWS secret access key'
+  s3_secret_key:
+    description: 'S3 Secret access key'
     required: true
   s3_endpoint:
     description: 'S3 endpoint'
@@ -34,11 +34,11 @@ runs:
     - '--config'
     - ${{ inputs.config }}
     - '--region'
-    - ${{ inputs.aws_region }}
+    - ${{ inputs.s3_region }}
     - '--access-key'
-    - ${{ inputs.aws_access_key_id }}
+    - ${{ inputs.s3_access_key }}
     - '--secret-key'
-    - ${{ inputs.aws_secret_access_key }}
+    - ${{ inputs.s3_secret_key }}
     - '--endpoint'
     - ${{ inputs.s3_endpoint }}
     - '--tlssecure'
