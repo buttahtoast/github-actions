@@ -22,6 +22,7 @@ inputs:
     description: 'S3 endpoint'
     required: false
   s3_tlssecure:
+    default: "true"
     description: 'Use TLS for the S3 endpoint'
     required: false
   log_level:
