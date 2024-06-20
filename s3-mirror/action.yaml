@@ -30,23 +30,6 @@ inputs:
 runs:
   using: 'docker'
   image: 'Dockerfile'
-  args:
-    - '--bucket'
-    - ${{ inputs.s3_bucket }}
-    - '--config'
-    - ${{ inputs.config }}
-    - '--region'
-    - ${{ inputs.s3_region }}
-    - '--access-key'
-    - ${{ inputs.s3_access_key }}
-    - '--secret-key'
-    - ${{ inputs.s3_secret_key }}
-    - '--endpoint'
-    - ${{ inputs.s3_endpoint }}
-    - '--tlssecure'
-    - ${{ inputs.s3_tlssecure }}
-    - '--log-level'
-    - ${{ inputs.log_level }}
 branding:
   icon: 'download'
   color: 'blue'

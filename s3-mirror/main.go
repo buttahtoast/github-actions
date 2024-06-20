@@ -192,7 +192,6 @@ func main() {
 	log.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 	})
-
 	app := &cli.App{
 		Name:  "k8s-binary-downloader",
 		Usage: "Download Kubernetes release binaries and upload them to an S3 bucket",
@@ -201,52 +200,52 @@ func main() {
 				Name:     "bucket",
 				Usage:    "Bucket Name",
 				Required: true,
-				EnvVars:  []string{"S3_BUCKET"},
+				EnvVars:  []string{"INPUT_S3_BUCKET"},
 			},
 			&cli.StringFlag{
 				Name:     "config",
 				Usage:    "YAML config file for binaries to download",
 				Required: false,
 				Value:    "config.yaml",
-				EnvVars:  []string{"CONFIG_FILE"},
+				EnvVars:  []string{"INPUT_CONFIG"},
 			},
 			&cli.StringFlag{
 				Name:     "region",
 				Usage:    "Bucket region",
 				Value:    "us-east-1",
 				Required: false,
-				EnvVars:  []string{"S3_REGION"},
+				EnvVars:  []string{"INPUT_S3_REGION"},
 			},
 			&cli.StringFlag{
 				Name:     "access-key",
 				Usage:    "S3 access key ID",
 				Required: true,
-				EnvVars:  []string{"S3_ACCESS_KEY_ID"},
+				EnvVars:  []string{"INPUT_S3_ACCESS_KEY"},
 			},
 			&cli.StringFlag{
 				Name:     "secret-key",
 				Usage:    "S3 secret access key",
 				Required: true,
-				EnvVars:  []string{"S3_SECRET_ACCESS_KEY"},
+				EnvVars:  []string{"INPUT_S3_SECRET_KEY"},
 			},
 			&cli.StringFlag{
 				Name:     "endpoint",
 				Usage:    "S3 endpoint",
 				Required: true,
-				EnvVars:  []string{"S3_ENDPOINT"},
+				EnvVars:  []string{"INPUT_S3_ENDPOINT"},
 			},
 			&cli.BoolFlag{
 				Name:     "tlssecure",
 				Usage:    "Use TLS for the S3 endpoint",
 				Required: false,
-				EnvVars:  []string{"S3_TLSSECURE"},
+				EnvVars:  []string{"INPUT_S3_TLSSECURE"},
 				Value:    true,
 			},
 			&cli.StringFlag{
 				Name:     "log-level",
 				Usage:    "Set the log level (debug, info, warn, error, fatal, panic)",
 				Required: false,
-				EnvVars:  []string{"LOG_LEVEL"},
+				EnvVars:  []string{"INPUT_LOG_LEVEL"},
 				Value:    "info", // default value
 			},
 		},
