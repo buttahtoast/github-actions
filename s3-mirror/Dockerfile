@@ -6,7 +6,7 @@ RUN go mod tidy
 COPY . .
 RUN CGO_ENABLED=0 go build -o /build/k8s-binary-downloader main.go
 
-FROM scratch
+FROM golang:1.22-alpine
 
 WORKDIR /app
 COPY --from=builder /build/k8s-binary-downloader /app/k8s-binary-downloader
