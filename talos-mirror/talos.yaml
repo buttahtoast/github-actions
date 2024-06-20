@@ -1,0 +1,12 @@
+talos:
+  items:
+    - factory:
+       customization:
+         systemExtensions:
+           officialExtensions:
+             - siderolabs/bnx2-bnx2x
+             - siderolabs/i915-ucode
+             - siderolabs/iscsi-tools
+      versions:
+        github: "https://github.com/siderolabs/talos"
+        semver: ">=1.7.0"
