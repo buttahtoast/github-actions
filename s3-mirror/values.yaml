@@ -1,0 +1,51 @@
+ingressController:
+  enabled: true
+  loadbalancerMode: dedicated
+  service:
+    annotations: {}
+    labels:
+      buttah.cloud/network: "internet"
+    name: "cilium-ingress"
+    type: "LoadBalancer"
+securityContext:
+  capabilities:
+    ciliumAgent:
+    - CHOWN
+    - KILL
+    - NET_ADMIN
+    - NET_RAW
+    - IPC_LOCK
+    - SYS_ADMIN
+    - SYS_RESOURCE
+    - DAC_OVERRIDE
+    - FOWNER
+    - SETGID
+    - SETUID
+    cleanCiliumState:
+    - NET_ADMIN
+    - SYS_ADMIN
+    - SYS_RESOURCE
+ipam:
+  mode: "kubernetes"
+k8sServicePort: 7445
+k8sServiceHost: "localhost"
+kubeProxyReplacement: true 
+
+tunnel: "vxlan"
+tunnelPort: "57321"
+routingMode: "tunnel"
+bgpControlPlane:
+  enabled: true
+gatewayAPI:
+  enabled: true
+cgroup:
+  hostRoot: /sys/fs/cgroup
+  autoMount:
+    enabled: false
+envoyConfig:
+  enabled: true
+envoy:
+  enabled: true
+  debug:
+    admin:
+      enabled: true

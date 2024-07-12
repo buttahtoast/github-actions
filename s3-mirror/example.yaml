@@ -1,5 +1,3 @@
-lifecycle: true
-preserveChecksums: true
 bins:
 
 #- name: "cni"
