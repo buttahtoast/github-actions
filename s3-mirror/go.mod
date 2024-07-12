@@ -4,7 +4,6 @@ go 1.21.4
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/aws/aws-sdk-go v1.53.20
 	github.com/blang/semver/v4 v4.0.0
 	github.com/google/go-github/v47 v47.1.0
 	github.com/minio/minio-go/v7 v7.0.71
@@ -23,7 +22,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
